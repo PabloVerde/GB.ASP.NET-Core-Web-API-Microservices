@@ -8,20 +8,23 @@ using MetricsAgent.Responses;
 using Castle.Core.Logging;
 using Microsoft.Extensions.Logging;
 using MetricsAgent.DAL.Models;
+using MetricsAgent.DAL.Interfaces;
+using AutoMapper;
 
 namespace MetricsAgentTests
 {
     public class CpuMetricsControllerUnitTests
     {
         private CpuMetricsController controller;
-        private Mock<IRepository<CpuMetric>> mock;
+        private Mock<ICpuMetricsRepository> mock;
         private Mock<ILogger<CpuMetricsController>> mockLogger;
+        private Mock<IMapper> mockMapper;
 
         public CpuMetricsControllerUnitTests()
         {
-            mock = new Mock<IRepository<CpuMetric>>();
+            mock = new Mock<ICpuMetricsRepository>();
             mockLogger = new Mock<ILogger<CpuMetricsController>>();
-            controller = new CpuMetricsController(mock.Object, mockLogger.Object);
+            controller = new CpuMetricsController(mock.Object, mockLogger.Object, mockMapper.Object );
         }
 
         [Fact]

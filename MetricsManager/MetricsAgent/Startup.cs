@@ -1,20 +1,17 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Data.SQLite;
-using System.Drawing;
-using MetricsAgent.DAL.Models;
 using MetricsAgent.DAL.Repositories;
 using AutoMapper;
 using MetricsAgent.DAL.Interfaces;
+using FluentMigrator.Runner;
+using Quartz.Spi;
+using MetricsAgent.Jobs;
+using Quartz;
+using Quartz.Impl;
+using MetricsAgent.Services;
 
 namespace MetricsAgent
 {
@@ -27,34 +24,34 @@ namespace MetricsAgent
 
         public IConfiguration Configuration { get; }
 
+        private const string ConnectionString = "Data Source = metrics.db; Version = 3; Pooling = true; Max Pool Size = 100;";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllers();
+            services.AddSingleton<ICpuMetricsRepository, CpuMetricsRepository>();
             var mapperConfiguration = new MapperConfiguration(mp => mp.AddProfile(new MapperProfile()));
             var mapper = mapperConfiguration.CreateMapper();
-            
-            services.AddControllers();
             services.AddSingleton(mapper);
-            ConfigureSqlLiteConnection(services);
-            services.AddScoped<ICpuMetricsRepository, CpuMetricsRepository>();
-        }
 
-        private void ConfigureSqlLiteConnection(IServiceCollection services)
-        {
-            const string connectionString = "Data Source = metrics.db; Version = 3; Pooling = true; Max Pool Size = 100;";
-            var connection = new SQLiteConnection(connectionString);
-            connection.Open();
-            PrepareSchema(connection);
-        }
+            services.AddFluentMigratorCore()
+                .ConfigureRunner(rb => rb
+                .AddSQLite()
+                .WithGlobalConnectionString(ConnectionString)
+                .ScanIn(typeof(Startup).Assembly).For.Migrations())
+                .AddLogging(lb =>
+                lb.AddFluentMigratorConsole());
 
-        private void PrepareSchema(SQLiteConnection connection)
-        {
-            using (var command = new SQLiteCommand(connection))
-            {
-                command.ExecuteNonQuery();
-                command.CommandText = @"CREATE TABLE cpumetrics(id INTEGER PRIMARY KEY, value INT, time INT)";
-                command.ExecuteNonQuery();
-            }
+            services.AddSingleton<IJobFactory, SingletonJobFactory>();
+            services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+
+            services.AddSingleton<CpuMetricJob>();
+            services.AddSingleton(new JobSchedule(
+                jobType: typeof(CpuMetricJob),
+                cronExpression: "0/5 * * * * ?"));
+
+            services.AddHostedService<QuartzHostedService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
