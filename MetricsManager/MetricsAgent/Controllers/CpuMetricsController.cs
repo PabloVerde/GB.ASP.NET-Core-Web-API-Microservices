@@ -6,21 +6,26 @@ using System.Collections.Generic;
 using MetricsAgent.Requests;
 using MetricsAgent.Responses;
 using Microsoft.Extensions.Logging;
+using Core.Interfaces;
+using MetricsAgent.DAL.Models;
+using MetricsAgent.DAL.Interfaces;
+using AutoMapper;
 
 namespace MetricsAgent.Controllers
 {
-    [Route("api/metrics/cpu")]
+    [Route("api/[controller]")]
     [ApiController]
     public class CpuMetricsController : ControllerBase
     {
-        private IRepository<CpuMetric> repository;
+        private ICpuMetricsRepository repository;
         private readonly ILogger<CpuMetricsController> logger;
-        public CpuMetricsController(IRepository<CpuMetric> repository, ILogger<CpuMetricsController> logger)
+        private readonly IMapper mapper;
+        public CpuMetricsController(ICpuMetricsRepository repository, ILogger<CpuMetricsController> logger, IMapper mapper)
         {
             this.repository = repository;
             this.logger = logger;
-
             this.logger.LogDebug(1, "NLog подключен к CpuMetricsController");
+            this.mapper = mapper;
         }
 
         [HttpPost("create")]
@@ -42,21 +47,17 @@ namespace MetricsAgent.Controllers
         {
             logger.LogInformation($"Запрос GET: ALL {DateTime.Now}");
 
-            var metrics = repository.GetAll();
+            IList<CpuMetric> metrics = repository.GetAll();
+
             var response = new AllCpuMetricsResponse()
             {
                 Metrics = new List<CpuMetricDto>()
             };
 
-            foreach (var metric in metrics)
+            foreach(var metric in metrics)
             {
-                response.Metrics.Add(new CpuMetricDto
-                {
-                    Time = metric.Time,
-                    Value = metric.Value,
-                    Id = metric.Id
-                });
-            }
+                response.Metrics.Add(mapper.Map<CpuMetricDto>(metric));
+            }    
 
             return Ok(response);
         }

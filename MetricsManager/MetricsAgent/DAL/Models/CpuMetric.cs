@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MetricsAgent
+namespace MetricsAgent.DAL.Models
 {
     public class CpuMetric
     {
