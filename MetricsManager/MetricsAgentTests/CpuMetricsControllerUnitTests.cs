@@ -4,10 +4,10 @@ using System;
 using Xunit;
 using MetricsAgent.DAL;
 using Moq;
-using MetricsAgent;
 using MetricsAgent.Responses;
 using Castle.Core.Logging;
 using Microsoft.Extensions.Logging;
+using MetricsAgent.DAL.Models;
 
 namespace MetricsAgentTests
 {

@@ -9,9 +9,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MetricsAgent.DAL;
 using System.Data.SQLite;
 using System.Drawing;
+using MetricsAgent.DAL.Models;
+using MetricsAgent.DAL.Repositories;
+using AutoMapper;
+using MetricsAgent.DAL.Interfaces;
 
 namespace MetricsAgent
 {
@@ -27,9 +30,13 @@ namespace MetricsAgent
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var mapperConfiguration = new MapperConfiguration(mp => mp.AddProfile(new MapperProfile()));
+            var mapper = mapperConfiguration.CreateMapper();
+            
             services.AddControllers();
+            services.AddSingleton(mapper);
             ConfigureSqlLiteConnection(services);
-            services.AddScoped<IRepository<CpuMetric>, CpuMetricsRepository>();
+            services.AddScoped<ICpuMetricsRepository, CpuMetricsRepository>();
         }
 
         private void ConfigureSqlLiteConnection(IServiceCollection services)
